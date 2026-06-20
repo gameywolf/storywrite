@@ -1,0 +1,71 @@
+// AI Author data model. SQLite for the MVP; structured fields stored as Json.
+// See docs/PLAN.md for the architecture this supports.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// A book project. Holds the user's intent, the generated blueprint, voice data,
+// and the live generation state (bible + summary + progress pointer).
+model Story {
+  id           String   @id @default(cuid())
+  title        String?
+  logline      String? // one-sentence summary (editable)
+  description  String // freeform "describe your story" input
+  targetLength String   @default("NOVEL") // SHORT_STORY | NOVELLA | NOVEL | EPIC
+
+  // Which model writes the prose. Aux steps (bible/review) are chosen server-side.
+  provider String @default("anthropic")
+  model    String @default("claude-opus-4-8")
+
+  // draft | blueprint_ready | generating | complete | error
+  status String @default("draft")
+
+  // Blueprint = the AI's plan. `inferred` is what it deduced (genre/POV/etc.)
+  // for the user to correct. Chapters are also normalized into Chapter rows.
+  blueprint Json?
+  inferred  Json?
+
+  // Voice matching
+  voiceSample   String? // raw user writing sample
+  voiceAnalysis Json? // structured style analysis
+  voiceExcerpts Json? // verbatim excerpts fed into every generation call
+
+  // Live generation state
+  storyBible     Json?
+  runningSummary String?
+  currentChapter Int     @default(0)
+
+  shareToken String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  chapters  Chapter[]
+}
+
+// One chapter. Outline comes from the blueprint; content is filled in by the
+// generation worker, one chapter at a time.
+model Chapter {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  index       Int // 0-based order within the story
+  title       String
+  description String
+  outline     String
+
+  content   String? // generated prose
+  status    String  @default("pending") // pending | generating | drafted | reviewed | error
+  wordCount Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storyId, index])
+}
