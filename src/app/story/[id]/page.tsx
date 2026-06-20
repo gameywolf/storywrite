@@ -34,7 +34,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <Link href="/" className="text-sm text-black/50 hover:underline dark:text-white/50">
+      <Link href="/" className="text-sm text-ink-soft hover:text-ink hover:underline">
         ← New story
       </Link>
 

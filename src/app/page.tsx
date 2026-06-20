@@ -11,6 +11,9 @@ const KEY_STORAGE = "ai-author:apiKey";
 const DEV_BACKEND = process.env.NEXT_PUBLIC_LLM_BACKEND?.toLowerCase();
 const USING_DEV_BACKEND = DEV_BACKEND === "mock" || DEV_BACKEND === "cli";
 
+const field =
+  "w-full rounded-lg border border-line bg-field p-2.5 text-sm text-ink outline-none transition focus:border-go";
+
 export default function HomePage() {
   const router = useRouter();
 
@@ -78,8 +81,10 @@ export default function HomePage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-12">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">AI Author</h1>
-        <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          <span className="text-ai">AI</span> Author
+        </h1>
+        <p className="mt-2 text-sm text-ink-soft">
           Describe your story. We&apos;ll plan it into a chapter-by-chapter blueprint you can refine.
         </p>
       </header>
@@ -87,10 +92,10 @@ export default function HomePage() {
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Story description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium">
+          <label htmlFor="description" className="block text-sm font-medium text-ink">
             Your story
           </label>
-          <p className="mb-2 text-xs text-black/50 dark:text-white/50">
+          <p className="mb-2 text-xs text-ink-soft">
             Be as vague or detailed as you like. Mention anything you care about — premise, characters, point of
             view, an ending you want, comparisons, things to avoid.
           </p>
@@ -100,21 +105,21 @@ export default function HomePage() {
             onChange={(e) => setDescription(e.target.value)}
             rows={8}
             placeholder="A washed-up detective in a flooded near-future city takes one last case…"
-            className="w-full rounded-lg border border-black/15 bg-transparent p-3 text-sm outline-none focus:border-black/40 dark:border-white/15 dark:focus:border-white/40"
+            className={field}
           />
         </div>
 
         {/* Length + model */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="length" className="block text-sm font-medium">
+            <label htmlFor="length" className="block text-sm font-medium text-ink">
               Target length
             </label>
             <select
               id="length"
               value={targetLength}
               onChange={(e) => setTargetLength(e.target.value as keyof typeof TARGET_LENGTHS)}
-              className="mt-2 w-full rounded-lg border border-black/15 bg-transparent p-2.5 text-sm outline-none focus:border-black/40 dark:border-white/15"
+              className={`mt-2 ${field}`}
             >
               {Object.values(TARGET_LENGTHS).map((t) => (
                 <option key={t.key} value={t.key}>
@@ -125,14 +130,17 @@ export default function HomePage() {
           </div>
 
           <div>
-            <label htmlFor="model" className="block text-sm font-medium">
+            <label htmlFor="model" className="flex items-center gap-1.5 text-sm font-medium text-ink">
               Model
+              <span className="rounded bg-ai-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ai-ink">
+                AI
+              </span>
             </label>
             <select
               id="model"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-black/15 bg-transparent p-2.5 text-sm outline-none focus:border-black/40 dark:border-white/15"
+              className={`mt-2 ${field}`}
             >
               {providerConfig.generationModels.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -146,14 +154,14 @@ export default function HomePage() {
         {/* Provider (single option for now, but ready for more) */}
         {Object.keys(PROVIDERS).length > 1 && (
           <div>
-            <label htmlFor="provider" className="block text-sm font-medium">
+            <label htmlFor="provider" className="block text-sm font-medium text-ink">
               Provider
             </label>
             <select
               id="provider"
               value={provider}
               onChange={(e) => onProviderChange(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-black/15 bg-transparent p-2.5 text-sm outline-none focus:border-black/40 dark:border-white/15"
+              className={`mt-2 ${field}`}
             >
               {Object.values(PROVIDERS).map((p) => (
                 <option key={p.id} value={p.id}>
@@ -166,18 +174,18 @@ export default function HomePage() {
 
         {/* API key — hidden when a dev backend is active */}
         {USING_DEV_BACKEND ? (
-          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Dev backend active (<span className="font-medium">{DEV_BACKEND}</span>):{" "}
+          <p className="rounded-lg border border-ai/30 bg-ai-soft px-3 py-2 text-xs text-ai-ink">
+            Dev backend active (<span className="font-semibold">{DEV_BACKEND}</span>):{" "}
             {DEV_BACKEND === "cli"
               ? "generation runs through your local Claude CLI / subscription. No API key needed."
               : "generation returns canned mock data instantly. No API key or model call."}
           </p>
         ) : (
           <div>
-            <label htmlFor="apiKey" className="block text-sm font-medium">
+            <label htmlFor="apiKey" className="block text-sm font-medium text-ink">
               {providerConfig.label} API key
             </label>
-            <p className="mb-2 text-xs text-black/50 dark:text-white/50">
+            <p className="mb-2 text-xs text-ink-soft">
               Stored only in this browser and sent with each request. Never saved on our servers.
             </p>
             <div className="flex gap-2">
@@ -187,12 +195,12 @@ export default function HomePage() {
                 value={apiKey}
                 onChange={(e) => onApiKeyChange(e.target.value)}
                 placeholder="sk-ant-…"
-                className="w-full rounded-lg border border-black/15 bg-transparent p-2.5 text-sm outline-none focus:border-black/40 dark:border-white/15"
+                className={field}
               />
               <button
                 type="button"
                 onClick={() => setShowKey((s) => !s)}
-                className="rounded-lg border border-black/15 px-3 text-sm dark:border-white/15"
+                className="shrink-0 rounded-lg border border-line bg-control px-3 text-sm text-ink transition hover:bg-control-hover"
               >
                 {showKey ? "Hide" : "Show"}
               </button>
@@ -201,13 +209,15 @@ export default function HomePage() {
         )}
 
         {error && (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="rounded-lg border border-red-700/20 bg-red-700/10 px-3 py-2 text-sm text-red-800">
+            {error}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black"
+          className="w-full rounded-lg bg-go px-4 py-3 text-sm font-semibold text-go-ink shadow-sm transition hover:bg-go-hover disabled:opacity-50"
         >
           {loading ? "Planning your story… (this can take a minute or two)" : "Generate blueprint"}
         </button>

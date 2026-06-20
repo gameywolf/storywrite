@@ -1,26 +1,36 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Enable `dark:` only under an explicit .dark class so the OS dark-mode setting
+   never overrides our warm theme. (We ship a single warm-library theme.) */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
+  /* ---- Warm library palette ----
+     background → Peach Glow · go → Sage Green · ai → Orchid Mist */
+  --color-background: #f4f0e6; /* warm cream — page background */
+  --color-surface: #ece6d8; /* beige — cards / windows */
+  --color-field: #faf7ef; /* near-white — inputs / fields */
+  --color-ink: #2a2218; /* near-black warm — primary text */
+  --color-ink-soft: #6e6555; /* muted taupe-brown — secondary text */
+  --color-line: #ddd4c0; /* soft tan borders */
+
+  --color-go: #5d7d63; /* forest green — primary "go" actions */
+  --color-go-hover: #4e6a54;
+  --color-go-ink: #ffffff; /* white text on green */
+
+  --color-control: #ded6c2; /* tan — secondary buttons */
+  --color-control-hover: #d4c9b2;
+
+  --color-ai: #b768c9; /* Orchid — AI features */
+  --color-ai-hover: #a755ba;
+  --color-ai-soft: #f1ddf6; /* light orchid surface */
+  --color-ai-ink: #4a2456; /* text on light orchid */
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-ink);
 }

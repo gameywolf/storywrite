@@ -31,9 +31,10 @@ interface Props {
 let keySeq = 0;
 const newKey = () => `c${keySeq++}-${Math.round(Math.random() * 1e6)}`;
 
-const input =
-  "w-full rounded-lg border border-black/15 bg-transparent p-2.5 text-sm outline-none focus:border-black/40 dark:border-white/15 dark:focus:border-white/40";
-const label = "block text-xs font-medium text-black/60 dark:text-white/60";
+const field =
+  "w-full rounded-lg border border-line bg-field p-2.5 text-sm text-ink outline-none transition focus:border-go";
+const label = "block text-xs font-medium text-ink-soft";
+const card = "rounded-xl border border-line bg-surface p-5";
 
 /** A textarea that grows to fit its content instead of scrolling. */
 function AutoTextarea({
@@ -61,7 +62,7 @@ function AutoTextarea({
       onChange={(e) => onChange(e.target.value)}
       rows={1}
       style={{ overflow: "hidden", resize: "none" }}
-      className={input}
+      className={field}
     />
   );
 }
@@ -113,8 +114,8 @@ export default function BlueprintEditor({
     setError(null);
   }
 
-  function setInf<K extends keyof EditorInferred>(field: K, value: EditorInferred[K]) {
-    setInferred((p) => ({ ...p, [field]: value }));
+  function setInf<K extends keyof EditorInferred>(fieldKey: K, value: EditorInferred[K]) {
+    setInferred((p) => ({ ...p, [fieldKey]: value }));
   }
   function setChapter(idx: number, patch: Partial<EditorChapter>) {
     setChapters((p) => p.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
@@ -196,7 +197,7 @@ export default function BlueprintEditor({
             <div className="space-y-2">
               <div>
                 <label className={label}>Title</label>
-                <input className={input} value={title} onChange={(e) => setTitle(e.target.value)} />
+                <input className={field} value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
               <div>
                 <label className={label}>Logline</label>
@@ -205,11 +206,11 @@ export default function BlueprintEditor({
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-semibold tracking-tight">{title || "Untitled"}</h1>
-              {logline && <p className="mt-2 text-base text-black/70 dark:text-white/70">{logline}</p>}
+              <h1 className="text-3xl font-semibold tracking-tight text-ink">{title || "Untitled"}</h1>
+              {logline && <p className="mt-2 text-base text-ink-soft">{logline}</p>}
             </>
           )}
-          <p className="mt-2 text-xs text-black/40 dark:text-white/40">
+          <p className="mt-2 text-xs text-ink-soft">
             {lengthLabel} · {chapters.length} chapters
           </p>
         </div>
@@ -221,7 +222,7 @@ export default function BlueprintEditor({
                 type="button"
                 onClick={cancelEdit}
                 disabled={saving}
-                className="rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/15"
+                className="rounded-lg border border-line bg-control px-3 py-2 text-sm text-ink transition hover:bg-control-hover disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -229,7 +230,7 @@ export default function BlueprintEditor({
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black"
+                className="rounded-lg bg-go px-4 py-2 text-sm font-semibold text-go-ink shadow-sm transition hover:bg-go-hover disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
@@ -238,7 +239,7 @@ export default function BlueprintEditor({
             <button
               type="button"
               onClick={enterEdit}
-              className="flex items-center gap-1.5 rounded-lg border border-black/15 px-3 py-2 text-sm hover:border-black/40 dark:border-white/15 dark:hover:border-white/40"
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-control px-3 py-2 text-sm text-ink transition hover:bg-control-hover"
             >
               <span aria-hidden>✎</span> Edit
             </button>
@@ -246,24 +247,20 @@ export default function BlueprintEditor({
         </div>
       </div>
 
-      {saved && !editing && (
-        <p className="text-sm text-green-600 dark:text-green-400">Saved.</p>
-      )}
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {saved && !editing && <p className="text-sm font-medium text-green-800">Saved.</p>}
+      {error && <p className="text-sm text-red-800">{error}</p>}
 
       {/* Story details */}
-      <section className="rounded-xl border border-black/10 p-5 dark:border-white/10">
-        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-          Story details
-        </h2>
+      <section className={card}>
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-soft">Story details</h2>
 
         {editing ? (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Labeled name="Genre"><input className={input} value={inferred.genre} onChange={(e) => setInf("genre", e.target.value)} /></Labeled>
-              <Labeled name="Point of view"><input className={input} value={inferred.pov} onChange={(e) => setInf("pov", e.target.value)} /></Labeled>
-              <Labeled name="Tense"><input className={input} value={inferred.tense} onChange={(e) => setInf("tense", e.target.value)} /></Labeled>
-              <Labeled name="Tone"><input className={input} value={inferred.tone} onChange={(e) => setInf("tone", e.target.value)} /></Labeled>
+              <Labeled name="Genre"><input className={field} value={inferred.genre} onChange={(e) => setInf("genre", e.target.value)} /></Labeled>
+              <Labeled name="Point of view"><input className={field} value={inferred.pov} onChange={(e) => setInf("pov", e.target.value)} /></Labeled>
+              <Labeled name="Tense"><input className={field} value={inferred.tense} onChange={(e) => setInf("tense", e.target.value)} /></Labeled>
+              <Labeled name="Tone"><input className={field} value={inferred.tone} onChange={(e) => setInf("tone", e.target.value)} /></Labeled>
               <div className="sm:col-span-2">
                 <Labeled name="Setting"><AutoTextarea value={inferred.setting} onChange={(v) => setInf("setting", v)} /></Labeled>
               </div>
@@ -271,21 +268,21 @@ export default function BlueprintEditor({
 
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Main characters</h3>
-                <button type="button" onClick={addCharacter} className="text-xs text-black/60 hover:underline dark:text-white/60">+ Add character</button>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Main characters</h3>
+                <button type="button" onClick={addCharacter} className="text-xs text-ink-soft hover:text-ink hover:underline">+ Add character</button>
               </div>
               <div className="space-y-3">
                 {inferred.mainCharacters.map((c, i) => (
-                  <div key={i} className="rounded-lg border border-black/10 p-3 dark:border-white/10">
+                  <div key={i} className="rounded-lg border border-line bg-field/60 p-3">
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <input className={input} placeholder="Name" value={c.name} onChange={(e) => setCharacter(i, { name: e.target.value })} />
-                      <input className={input} placeholder="Role" value={c.role} onChange={(e) => setCharacter(i, { role: e.target.value })} />
+                      <input className={field} placeholder="Name" value={c.name} onChange={(e) => setCharacter(i, { name: e.target.value })} />
+                      <input className={field} placeholder="Role" value={c.role} onChange={(e) => setCharacter(i, { role: e.target.value })} />
                     </div>
                     <div className="mt-2">
                       <AutoTextarea value={c.description} onChange={(v) => setCharacter(i, { description: v })} placeholder="Description" />
                     </div>
                     <div className="mt-1 text-right">
-                      <button type="button" onClick={() => removeCharacter(i)} className="text-xs text-red-600/80 hover:underline dark:text-red-400/80">Remove</button>
+                      <button type="button" onClick={() => removeCharacter(i)} className="text-xs text-red-800/80 hover:underline">Remove</button>
                     </div>
                   </div>
                 ))}
@@ -305,15 +302,13 @@ export default function BlueprintEditor({
             </dl>
             {inferred.mainCharacters.length > 0 && (
               <div className="mt-5">
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Main characters</h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Main characters</h3>
                 <ul className="space-y-2 text-sm">
                   {inferred.mainCharacters.map((c, i) => (
                     <li key={i}>
-                      <span className="font-medium">{c.name}</span>
-                      {c.role && <span className="text-black/50 dark:text-white/50"> — {c.role}</span>}
-                      {c.description && (
-                        <p className="whitespace-pre-wrap text-black/70 dark:text-white/70">{c.description}</p>
-                      )}
+                      <span className="font-medium text-ink">{c.name}</span>
+                      {c.role && <span className="text-ink-soft"> — {c.role}</span>}
+                      {c.description && <p className="whitespace-pre-wrap text-ink/85">{c.description}</p>}
                     </li>
                   ))}
                 </ul>
@@ -325,34 +320,32 @@ export default function BlueprintEditor({
 
       {/* Chapters */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Chapters</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">Chapters</h2>
         <ol className="space-y-4">
           {chapters.map((ch, i) => (
-            <li key={ch.key} className="rounded-xl border border-black/10 p-5 dark:border-white/10">
+            <li key={ch.key} className={card}>
               {editing ? (
                 <>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-black/40 dark:text-white/40">Chapter {i + 1}</span>
-                    <div className="flex items-center gap-3 text-xs">
+                    <span className="text-xs font-semibold text-ink-soft">Chapter {i + 1}</span>
+                    <div className="flex items-center gap-3 text-xs text-ink">
                       <button type="button" onClick={() => moveChapter(i, -1)} disabled={i === 0} className="disabled:opacity-30">↑</button>
                       <button type="button" onClick={() => moveChapter(i, 1)} disabled={i === chapters.length - 1} className="disabled:opacity-30">↓</button>
-                      <button type="button" onClick={() => removeChapter(i)} className="text-red-600/80 hover:underline dark:text-red-400/80">Delete</button>
+                      <button type="button" onClick={() => removeChapter(i)} className="text-red-800/80 hover:underline">Delete</button>
                     </div>
                   </div>
-                  <input className={input} placeholder="Chapter title" value={ch.title} onChange={(e) => setChapter(i, { title: e.target.value })} />
+                  <input className={field} placeholder="Chapter title" value={ch.title} onChange={(e) => setChapter(i, { title: e.target.value })} />
                   <div className="mt-2"><AutoTextarea value={ch.description} onChange={(v) => setChapter(i, { description: v })} placeholder="One-line description" /></div>
                   <div className="mt-2"><AutoTextarea value={ch.outline} onChange={(v) => setChapter(i, { outline: v })} placeholder="Detailed outline" /></div>
                 </>
               ) : (
                 <>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-semibold text-black/40 dark:text-white/40">{String(i + 1).padStart(2, "0")}</span>
-                    <h3 className="font-medium">{ch.title || "Untitled chapter"}</h3>
+                    <span className="text-xs font-semibold text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
+                    <h3 className="font-medium text-ink">{ch.title || "Untitled chapter"}</h3>
                   </div>
-                  {ch.description && <p className="mt-1 text-sm italic text-black/60 dark:text-white/60">{ch.description}</p>}
-                  {ch.outline && (
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-black/80 dark:text-white/80">{ch.outline}</p>
-                  )}
+                  {ch.description && <p className="mt-1 text-sm italic text-ink-soft">{ch.description}</p>}
+                  {ch.outline && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">{ch.outline}</p>}
                 </>
               )}
             </li>
@@ -362,7 +355,7 @@ export default function BlueprintEditor({
           <button
             type="button"
             onClick={addChapter}
-            className="mt-4 w-full rounded-lg border border-dashed border-black/20 py-2.5 text-sm text-black/60 hover:border-black/40 dark:border-white/20 dark:text-white/60"
+            className="mt-4 w-full rounded-lg border border-dashed border-line py-2.5 text-sm text-ink-soft hover:border-go hover:text-ink"
           >
             + Add chapter
           </button>
@@ -384,8 +377,8 @@ function Labeled({ name, children }: { name: string; children: React.ReactNode }
 function ReadField({ label: name, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-black/50 dark:text-white/50">{name}</dt>
-      <dd className="mt-0.5 whitespace-pre-wrap font-medium">{value || "—"}</dd>
+      <dt className="text-xs text-ink-soft">{name}</dt>
+      <dd className="mt-0.5 whitespace-pre-wrap font-medium text-ink">{value || "—"}</dd>
     </div>
   );
 }
