@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getTargetLength } from "@/lib/models";
 import BlueprintEditor, { type EditorInferred } from "@/components/BlueprintEditor";
+import GenerationPanel from "@/components/GenerationPanel";
+import VoiceProfilePicker from "@/components/VoiceProfilePicker";
+import type { VoiceAnalysis } from "@/lib/voice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,10 +22,16 @@ const BLANK_INFERRED: EditorInferred = {
 export default async function StoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const story = await prisma.story.findUnique({
-    where: { id },
-    include: { chapters: { orderBy: { index: "asc" } } },
-  });
+  const [story, voiceProfiles] = await Promise.all([
+    prisma.story.findUnique({
+      where: { id },
+      include: {
+        chapters: { orderBy: { index: "asc" } },
+        voiceProfile: { select: { id: true, analysis: true } },
+      },
+    }),
+    prisma.voiceProfile.findMany({ orderBy: { updatedAt: "desc" }, select: { id: true, name: true } }),
+  ]);
 
   if (!story) notFound();
 
@@ -31,12 +40,35 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
     ...((story.inferred as unknown as Partial<EditorInferred> | null) ?? {}),
   };
   const len = getTargetLength(story.targetLength);
+  const written = story.chapters.filter((c) => (c.content ?? "").trim().length > 0).length;
+  const voiceAnalysis = (story.voiceProfile?.analysis as unknown as VoiceAnalysis | null) ?? null;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <Link href="/" className="text-sm text-ink-soft hover:text-ink hover:underline">
-        ← New story
-      </Link>
+      <div className="flex items-center gap-4 text-sm">
+        <Link href="/stories" className="text-ink-soft hover:text-ink hover:underline">
+          ← All stories
+        </Link>
+        <Link href="/voices" className="text-ink-soft hover:text-ink hover:underline">
+          Voices
+        </Link>
+        <Link href="/" className="text-ink-soft hover:text-ink hover:underline">
+          + New story
+        </Link>
+      </div>
+
+      <div className="mt-6">
+        <VoiceProfilePicker
+          storyId={story.id}
+          profiles={voiceProfiles}
+          selectedId={story.voiceProfile?.id ?? null}
+          selectedAnalysis={voiceAnalysis}
+        />
+      </div>
+
+      <div className="mt-6">
+        <GenerationPanel storyId={story.id} total={story.chapters.length} written={written} />
+      </div>
 
       <div className="mt-6">
         <BlueprintEditor

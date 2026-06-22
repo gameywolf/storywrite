@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PROVIDERS, DEFAULT_PROVIDER, TARGET_LENGTHS } from "@/lib/models";
 
 const KEY_STORAGE = "ai-author:apiKey";
@@ -81,9 +82,14 @@ export default function HomePage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-12">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          <span className="text-ai">AI</span> Author
-        </h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            <span className="text-ai">AI</span> Author
+          </h1>
+          <Link href="/stories" className="text-sm font-medium text-ink-soft hover:text-ink hover:underline">
+            Your stories →
+          </Link>
+        </div>
         <p className="mt-2 text-sm text-ink-soft">
           Describe your story. We&apos;ll plan it into a chapter-by-chapter blueprint you can refine.
         </p>

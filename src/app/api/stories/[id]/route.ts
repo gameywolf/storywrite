@@ -32,6 +32,8 @@ const PatchSchema = z.object({
   logline: z.string().optional(),
   inferred: InferredSchema.optional(),
   chapters: z.array(ChapterInputSchema).optional(),
+  // null = use the default voice; a string = link that profile.
+  voiceProfileId: z.string().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +58,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.title !== undefined) data.title = body.title;
     if (body.logline !== undefined) data.logline = body.logline;
     if (body.inferred !== undefined) data.inferred = body.inferred as Prisma.InputJsonValue;
+    if (body.voiceProfileId !== undefined) {
+      data.voiceProfile = body.voiceProfileId
+        ? { connect: { id: body.voiceProfileId } }
+        : { disconnect: true };
+    }
     if (Object.keys(data).length > 0) {
       await tx.story.update({ where: { id }, data });
     }

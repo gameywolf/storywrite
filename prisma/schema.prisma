@@ -31,10 +31,10 @@ model Story {
   blueprint Json?
   inferred  Json?
 
-  // Voice matching
-  voiceSample   String? // raw user writing sample
-  voiceAnalysis Json? // structured style analysis
-  voiceExcerpts Json? // verbatim excerpts fed into every generation call
+  // Voice matching — a reusable profile shared across stories (nullable: a story
+  // can use the default voice).
+  voiceProfileId String?
+  voiceProfile   VoiceProfile? @relation(fields: [voiceProfileId], references: [id], onDelete: SetNull)
 
   // Live generation state
   storyBible     Json?
@@ -68,4 +68,19 @@ model Chapter {
   updatedAt DateTime @updatedAt
 
   @@unique([storyId, index])
+}
+
+// A reusable voice profile: a writing sample analyzed once into transferable
+// prose craft, then shared across any number of stories. Lives in a global
+// library managed at /voices (single-user app, so no owner).
+model VoiceProfile {
+  id        String  @id @default(cuid())
+  name      String
+  sample    String? // raw user writing sample (optional for manually-built profiles)
+  analysis  Json // structured style analysis
+  excerpts  Json // verbatim excerpts fed into every generation call
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stories   Story[]
 }
