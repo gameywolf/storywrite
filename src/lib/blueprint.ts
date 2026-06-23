@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getProvider } from "./llm";
-import { getTargetLength, type TargetLength } from "./models";
+import { getTargetLength } from "./models";
+import { BLUEPRINT_SYSTEM, blueprintUserPrompt } from "./prompts/blueprint";
 
 // ---- Output shape -----------------------------------------------------------
 
@@ -87,26 +88,7 @@ const BLUEPRINT_JSON_SCHEMA = {
   required: ["title", "logline", "inferred", "chapters"],
 } as const;
 
-// ---- Prompts ----------------------------------------------------------------
-
-const SYSTEM = `You are a master story architect and developmental editor. Given a writer's idea, you design a clear, compelling, chapter-by-chapter blueprint for their book.
-
-Principles:
-- Honor everything the writer specified. Sensibly invent what they left blank, staying true to the spirit and genre of their idea.
-- Infer genre, point of view, tense, tone, setting, and the main characters from their description. If they stated any of these explicitly, use theirs exactly.
-- Give every chapter a title, a one-to-two sentence description, and a DETAILED outline — a beat-by-beat paragraph covering character goals, the central conflict of the chapter, the key events, and how it moves the overall story forward.
-- Build a genuine dramatic arc across the chapters: setup, rising action, a midpoint turn, escalating stakes, a climax, and a resolution. Avoid repetitive or filler chapters.
-- Plan only. Do NOT write any prose for the chapters themselves.`;
-
-function userPrompt(description: string, len: TargetLength): string {
-  return `Here is my story idea:
-
-"""
-${description}
-"""
-
-Plan a ${len.label} of exactly ${len.chapters} chapters, each intended to run roughly ${len.wordsPerChapter} words. Produce a working title and a one-sentence logline, infer the story's genre/POV/tense/tone/setting and main characters, then outline every chapter in detail.`;
-}
+// Prompts live in ./prompts/blueprint.ts (edit them there).
 
 // ---- Entry point ------------------------------------------------------------
 
@@ -124,8 +106,8 @@ export async function generateBlueprint(input: GenerateBlueprintInput): Promise<
 
   const { data } = await llm.generateJSON({
     model: input.model,
-    system: SYSTEM,
-    messages: [{ role: "user", content: userPrompt(input.description, len) }],
+    system: BLUEPRINT_SYSTEM,
+    messages: [{ role: "user", content: blueprintUserPrompt(input.description, len) }],
     maxTokens: 16000,
     effort: "high",
     thinking: true,

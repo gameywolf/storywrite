@@ -47,15 +47,16 @@ export type TargetLengthKey = "SHORT_STORY" | "NOVELLA" | "NOVEL" | "EPIC";
 export interface TargetLength {
   key: TargetLengthKey;
   label: string;
-  chapters: number;
-  wordsPerChapter: number;
+  /** Total target book length in words. The AI decides how many chapters to use
+   *  and how long each should be, based on the story. */
+  words: number;
 }
 
 export const TARGET_LENGTHS: Record<TargetLengthKey, TargetLength> = {
-  SHORT_STORY: { key: "SHORT_STORY", label: "Short story (~7,500 words)", chapters: 3, wordsPerChapter: 2500 },
-  NOVELLA: { key: "NOVELLA", label: "Novella (~30,000 words)", chapters: 12, wordsPerChapter: 2500 },
-  NOVEL: { key: "NOVEL", label: "Novel (~90,000 words)", chapters: 30, wordsPerChapter: 3000 },
-  EPIC: { key: "EPIC", label: "Epic (~150,000 words)", chapters: 45, wordsPerChapter: 3300 },
+  SHORT_STORY: { key: "SHORT_STORY", label: "Short story (~7,500 words)", words: 7500 },
+  NOVELLA: { key: "NOVELLA", label: "Novella (~30,000 words)", words: 30000 },
+  NOVEL: { key: "NOVEL", label: "Novel (~90,000 words)", words: 90000 },
+  EPIC: { key: "EPIC", label: "Epic (~150,000 words)", words: 150000 },
 };
 
 export function getTargetLength(key: string): TargetLength {

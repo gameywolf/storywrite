@@ -19,7 +19,9 @@ import {
 
 const ZERO: Usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
-const CLI_TIMEOUT_MS = 240_000;
+// Dev-only cap. A full novel blueprint with detailed per-chapter outlines is a
+// big, slow generation on the subscription CLI, so this is generous.
+const CLI_TIMEOUT_MS = 600_000;
 
 function modelAlias(model: string): string | null {
   if (process.env.CLAUDE_CLI_MODEL) return process.env.CLAUDE_CLI_MODEL;
