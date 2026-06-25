@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getTargetLength } from "@/lib/models";
 import BlueprintEditor, { type EditorInferred } from "@/components/BlueprintEditor";
+import BlueprintChat from "@/components/BlueprintChat";
 import GenerationPanel from "@/components/GenerationPanel";
 import VoiceProfilePicker from "@/components/VoiceProfilePicker";
 import type { VoiceAnalysis } from "@/lib/voice";
@@ -70,8 +71,13 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
         <GenerationPanel storyId={story.id} total={story.chapters.length} written={written} />
       </div>
 
+      <BlueprintChat storyId={story.id} />
+
       <div className="mt-6">
         <BlueprintEditor
+        // Remount when the stored blueprint changes (e.g. after an AI chat
+        // revision) so the editor picks up the fresh server data.
+        key={story.updatedAt.toISOString()}
         storyId={story.id}
         initialTitle={story.title ?? ""}
         initialLogline={story.logline ?? ""}

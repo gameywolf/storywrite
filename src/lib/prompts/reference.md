@@ -40,6 +40,17 @@ ${description}
 Plan a book of about ${len.words} words total (${len.label}). Decide how many chapters the story needs and how long each should be. Produce a working title and a one-sentence logline, infer the story's genre/POV/tense/tone/setting and main characters, then outline every chapter in detail.
 ```
 
+## Blueprint chat — system + user (`prompts/blueprintChat.ts`)
+
+> NOTE: this prompt set is NEW (added with the "Adjust with AI" chat on the
+> blueprint screen). There was no prior working version, so there's nothing to
+> restore here — author `BLUEPRINT_CHAT_SYSTEM` and `buildBlueprintChatPrompt`
+> from scratch. The blueprint-generation prompts above are the closest
+> reference for tone/structure. The call returns a short `reply` plus a PATCH
+> (edits-only: `fields` / `characters` / `chapters` arrays) which the server
+> applies to the saved blueprint — so prompt the model to change as little as
+> possible and never re-send unchanged chapters.
+
 ---
 
 ## Voice analysis — system (`prompts/voice.ts` → `VOICE_SYSTEM`)
