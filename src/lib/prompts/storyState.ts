@@ -21,7 +21,7 @@ export interface StateContext {
 // SYSTEM PROMPT — standing instructions for the bookkeeping model.
 // Keep it short: it maintains a bible + running summary and must return JSON.
 // -----------------------------------------------------------------------------
-export const STATE_SYSTEM = ``;
+export const STATE_SYSTEM = `You maintain a story bible and a running summary for a novel in progress. Return only JSON.`;
 
 // -----------------------------------------------------------------------------
 // USER PROMPT — asks for the merged/updated state.
@@ -42,10 +42,11 @@ export function buildStatePrompt(ctx: StateContext): string {
   const prevSummary = ctx.runningSummary ?? "(none yet)";
   const prevBible = ctx.storyBible ? JSON.stringify(ctx.storyBible, null, 2) : "(none yet)";
 
-  // TODO: write the story-state update user prompt.
   return [
+    `Update the story bible and running summary to incorporate the newly written chapter below.`,
     `PREVIOUS RUNNING SUMMARY:\n${prevSummary}`,
     `PREVIOUS BIBLE:\n${prevBible}`,
     `NEWLY WRITTEN — Chapter ${ctx.chapterIndex + 1}: ${ctx.chapterTitle}:\n"""\n${ctx.prose}\n"""`,
+    "Return JSON: `runningSummary` (recap of the WHOLE story so far, a few paragraphs) and `bible` {characters[name,status,notes], locations[name,notes], facts[], openThreads[]}. Merge new info with previous, keep it consistent and deduplicated.",
   ].join("\n\n");
 }

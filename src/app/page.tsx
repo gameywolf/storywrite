@@ -80,7 +80,7 @@ export default function HomePage() {
   const providerConfig = PROVIDERS[provider];
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <header className="mb-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight">
@@ -95,15 +95,16 @@ export default function HomePage() {
         </p>
       </header>
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <form onSubmit={onSubmit} className="space-y-6 lg:col-span-2">
         {/* Story description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-ink">
             Your story
           </label>
           <p className="mb-2 text-xs text-ink-soft">
-            Be as vague or detailed as you like. Mention anything you care about — premise, characters, point of
-            view, an ending you want, comparisons, things to avoid.
+            Be as vague or detailed as you like — the more you include (see the checklist), the closer the
+            blueprint will match what you imagine.
           </p>
           <textarea
             id="description"
@@ -228,6 +229,47 @@ export default function HomePage() {
           {loading ? "Planning your story… (this can take a minute or two)" : "Generate blueprint"}
         </button>
       </form>
+
+        <aside className="lg:col-span-1">
+          <div className="sticky top-8 rounded-xl border border-line bg-surface p-5">
+            <h2 className="text-sm font-semibold text-ink">What to include</h2>
+            <p className="mt-1 text-xs text-ink-soft">
+              Anything you leave out, the AI invents. Touch on whatever you have an opinion about:
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-ink/90">
+              {STORY_TIPS.map((tip) => (
+                <li key={tip.label} className="flex gap-2.5">
+                  <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ai" />
+                  <span>
+                    <span className="font-medium text-ink">{tip.label}</span>
+                    <span className="text-ink-soft"> — {tip.hint}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 border-t border-line pt-3 text-xs text-ink-soft">
+              How it&apos;s <em>written</em> — your prose voice and style — is set separately under{" "}
+              <Link href="/voices" className="font-medium text-ai hover:underline">
+                Voices
+              </Link>
+              , so you don&apos;t need to describe that here.
+            </p>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
+
+// Prompts for the "What to include" sidebar on the story-creation form.
+const STORY_TIPS: { label: string; hint: string }[] = [
+  { label: "Premise / hook", hint: "the core idea or the “what if” that sparked it" },
+  { label: "Main characters", hint: "names, roles, what they want, and their flaws" },
+  { label: "Setting & time", hint: "where and when it takes place" },
+  { label: "Genre & tone", hint: "e.g. cozy mystery, bleak sci-fi, hopeful, funny" },
+  { label: "Point of view & tense", hint: "first or third person, past or present" },
+  { label: "Key beats or ending", hint: "moments you definitely want, or how it ends" },
+  { label: "Themes", hint: "ideas you want the story to explore" },
+  { label: "Comparisons", hint: "“in the vein of ___” books, films, or authors" },
+  { label: "Things to avoid", hint: "content, tropes, or clichés to steer clear of" },
+];
