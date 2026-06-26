@@ -51,6 +51,16 @@ Plan a book of about ${len.words} words total (${len.label}). Decide how many ch
 > applies to the saved blueprint — so prompt the model to change as little as
 > possible and never re-send unchanged chapters.
 
+## Clarifying questions — system + user (`prompts/blueprint.ts` → `CLARIFY_SYSTEM` / `clarifyUserPrompt`)
+
+> NOTE: this prompt set is NEW (added with the "Help me fill the gaps" overlay on
+> the story-creation page). It runs BEFORE the blueprint: it reads the idea, finds
+> the biggest ambiguities, and returns 2-10 multiple-choice questions (each a
+> topic label + 2-5 concrete options; the UI always adds its own free-text "Other"
+> box, so the model must not emit one). The writer's answers are folded into
+> `blueprintUserPrompt(description, len, answers)` as honored intent. A working
+> version is authored in `prompts/blueprint.ts`; there's no older text to restore.
+
 ---
 
 ## Voice analysis — system (`prompts/voice.ts` → `VOICE_SYSTEM`)

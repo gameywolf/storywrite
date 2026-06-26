@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PROVIDERS, DEFAULT_PROVIDER, TARGET_LENGTHS } from "@/lib/models";
+import ClarifyModal from "@/components/ClarifyModal";
+import type { ClarifyQuestion } from "@/lib/clarify";
+import type { ClarifyAnswer } from "@/lib/prompts/blueprint";
 
 const KEY_STORAGE = "ai-author:apiKey";
 
@@ -26,7 +29,11 @@ export default function HomePage() {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [questions, setQuestions] = useState<ClarifyQuestion[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [clarifyFailed, setClarifyFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load the saved key from the browser (never sent anywhere except per-request).
@@ -46,36 +53,76 @@ export default function HomePage() {
     else localStorage.removeItem(KEY_STORAGE);
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  function headers(): Record<string, string> {
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey.trim()) h["x-llm-key"] = apiKey.trim();
+    return h;
+  }
 
+  function validate(): boolean {
+    setError(null);
     if (!USING_DEV_BACKEND && !apiKey.trim()) {
       setError("Add your API key first.");
-      return;
+      return false;
     }
     if (description.trim().length < 10) {
       setError("Tell me a little more about your story.");
-      return;
+      return false;
     }
+    return true;
+  }
 
-    setLoading(true);
+  // Step 1: find the biggest gaps in the idea and open the modal to resolve them.
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setClarifyFailed(false);
+    setLoadingQuestions(true);
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (apiKey.trim()) headers["x-llm-key"] = apiKey.trim();
+      const res = await fetch("/api/blueprint/clarify", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ description, targetLength, provider, model }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Couldn't generate questions.");
+      const qs = (data.questions ?? []) as ClarifyQuestion[];
+      if (qs.length === 0) {
+        // Nothing ambiguous enough to ask about — go straight to the blueprint.
+        await generate([]);
+        return;
+      }
+      setQuestions(qs);
+      setModalOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't generate questions.");
+      setClarifyFailed(true);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  }
+
+  // Step 2: generate the blueprint, folding in whatever the writer answered.
+  async function generate(answers: ClarifyAnswer[]) {
+    setError(null);
+    setGenerating(true);
+    try {
       const res = await fetch("/api/blueprint", {
         method: "POST",
-        headers,
-        body: JSON.stringify({ description, targetLength, provider, model }),
+        headers: headers(),
+        body: JSON.stringify({ description, targetLength, provider, model, answers }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to generate blueprint.");
       router.push(`/story/${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
-      setLoading(false);
+      setGenerating(false); // leave the modal open so they can retry
     }
   }
+
+  const busy = loadingQuestions || generating;
 
   const providerConfig = PROVIDERS[provider];
 
@@ -215,19 +262,37 @@ export default function HomePage() {
           </div>
         )}
 
-        {error && (
+        {/* Hidden while the modal is up — it shows its own errors there. */}
+        {error && !modalOpen && (
           <p className="rounded-lg border border-red-700/20 bg-red-700/10 px-3 py-2 text-sm text-red-800">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-go px-4 py-3 text-sm font-semibold text-go-ink shadow-sm transition hover:bg-go-hover disabled:opacity-50"
-        >
-          {loading ? "Planning your story… (this can take a minute or two)" : "Generate blueprint"}
-        </button>
+        <div className="space-y-2">
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg bg-go px-4 py-3 text-sm font-semibold text-go-ink shadow-sm transition hover:bg-go-hover disabled:opacity-50"
+          >
+            {loadingQuestions
+              ? "Reading your idea…"
+              : generating
+                ? "Planning your story… (this can take a minute or two)"
+                : "Generate blueprint"}
+          </button>
+
+          {/* If the clarify step itself failed, let them generate without it. */}
+          {clarifyFailed && !busy && (
+            <button
+              type="button"
+              onClick={() => generate([])}
+              className="w-full text-center text-sm font-medium text-ink-soft underline-offset-2 transition hover:text-ink hover:underline"
+            >
+              Skip questions and generate anyway
+            </button>
+          )}
+        </div>
       </form>
 
         <aside className="lg:col-span-1">
@@ -257,6 +322,20 @@ export default function HomePage() {
           </div>
         </aside>
       </div>
+
+      {modalOpen && (
+        <ClarifyModal
+          questions={questions}
+          busy={generating}
+          error={error}
+          onGenerate={(answers) => generate(answers)}
+          onSkip={() => generate([])}
+          onClose={() => {
+            setModalOpen(false);
+            setError(null);
+          }}
+        />
+      )}
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { parseJsonLoose } from "./json";
 import {
   LLMError,
   type GenerateJSONOptions,
@@ -87,6 +88,7 @@ export class AnthropicProvider implements LLMProvider {
         throw new LLMError("The model declined to complete this request.", 422);
       }
       const raw = textOf(res.content);
+      const truncated = res.stop_reason === "max_tokens";
       if (!raw) {
         throw new LLMError(
           `Model returned no output (stop reason: ${res.stop_reason ?? "unknown"}).`,
@@ -95,8 +97,17 @@ export class AnthropicProvider implements LLMProvider {
       }
       let data: unknown;
       try {
-        data = JSON.parse(raw);
+        data = parseJsonLoose(raw);
       } catch {
+        // Schema-constrained output is well-formed unless it overran the token
+        // budget mid-object — say so, since the fix (shorter request / higher
+        // max_tokens) is different from a generic malformed-JSON error.
+        if (truncated) {
+          throw new LLMError(
+            "The model ran out of output room before finishing. Try a shorter target length (fewer/shorter chapters) or raise the token limit.",
+            502,
+          );
+        }
         throw new LLMError("Model returned malformed JSON.", 502);
       }
       return { data, raw, usage: toUsage(res.usage) };

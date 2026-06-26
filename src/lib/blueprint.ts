@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getProvider } from "./llm";
 import { getTargetLength } from "./models";
-import { BLUEPRINT_SYSTEM, blueprintUserPrompt } from "./prompts/blueprint";
+import { BLUEPRINT_SYSTEM, blueprintUserPrompt, type ClarifyAnswer } from "./prompts/blueprint";
 
 // ---- Output shape -----------------------------------------------------------
 
@@ -98,6 +98,8 @@ export interface GenerateBlueprintInput {
   provider: string;
   model: string;
   apiKey: string;
+  /** The writer's answers to the clarifying questions (empty if they skipped). */
+  answers?: ClarifyAnswer[];
 }
 
 export async function generateBlueprint(input: GenerateBlueprintInput): Promise<Blueprint> {
@@ -107,7 +109,7 @@ export async function generateBlueprint(input: GenerateBlueprintInput): Promise<
   const { data } = await llm.generateJSON({
     model: input.model,
     system: BLUEPRINT_SYSTEM,
-    messages: [{ role: "user", content: blueprintUserPrompt(input.description, len) }],
+    messages: [{ role: "user", content: blueprintUserPrompt(input.description, len, input.answers ?? []) }],
     maxTokens: 16000,
     effort: "high",
     thinking: true,

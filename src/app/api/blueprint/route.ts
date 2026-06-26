@@ -14,6 +14,11 @@ const BodySchema = z.object({
   targetLength: z.enum(["SHORT_STORY", "NOVELLA", "NOVEL", "EPIC"]),
   provider: z.string(),
   model: z.string(),
+  // The writer's answers to the clarifying questions, if they didn't skip them.
+  answers: z
+    .array(z.object({ question: z.string(), answer: z.string() }))
+    .max(10)
+    .optional(),
 });
 
 export async function POST(req: Request) {
@@ -50,6 +55,7 @@ export async function POST(req: Request) {
       provider: backendProviderName(body.provider),
       model: body.model,
       apiKey,
+      answers: body.answers,
     });
 
     const story = await prisma.story.create({
@@ -80,7 +86,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
     console.error("Blueprint generation failed:", e);
-    return NextResponse.json({ error: "Something went wrong generating the blueprint." }, { status: 500 });
+    // A ZodError here means the model produced JSON that parsed but didn't match
+    // the blueprint shape (a missing/empty field or wrong type) — common on the
+    // unenforced CLI backend. Surface a useful hint instead of a blank failure.
+    if (e instanceof z.ZodError) {
+      const where = e.issues[0]?.path.join(".") || "output";
+      return NextResponse.json(
+        {
+          error: `The model's blueprint was incomplete or malformed (problem at "${where}"). Try generating again, or use a different model.`,
+        },
+        { status: 502 },
+      );
+    }
+    const detail = e instanceof Error ? `: ${e.message}` : "";
+    return NextResponse.json(
+      { error: `Something went wrong generating the blueprint${detail}` },
+      { status: 500 },
+    );
   }
 }
 

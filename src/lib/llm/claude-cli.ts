@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { parseJsonLoose } from "./json";
 import {
   LLMError,
   type GenerateJSONOptions,
@@ -39,16 +40,6 @@ function buildPrompt(system: string | undefined, messages: LLMMessage[]): string
     parts.push(`${m.role === "user" ? "User" : "Assistant"}: ${m.content}`);
   }
   return parts.join("\n\n");
-}
-
-function extractJson(text: string): string {
-  let t = text.trim();
-  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) t = fence[1].trim();
-  const start = t.indexOf("{");
-  const end = t.lastIndexOf("}");
-  if (start !== -1 && end !== -1 && end > start) t = t.slice(start, end + 1);
-  return t;
 }
 
 function runClaude(prompt: string, model: string | null): Promise<string> {
@@ -108,15 +99,30 @@ export class ClaudeCliProvider implements LLMProvider {
   }
 
   async generateJSON(opts: GenerateJSONOptions) {
+    const base = buildPrompt(opts.system, opts.messages);
     const instruction = `\n\nRespond with ONLY a single valid JSON object that conforms to the JSON Schema below. No prose, no explanation, no markdown code fences.\n\nJSON Schema:\n${JSON.stringify(opts.jsonSchema)}`;
-    const raw = await runClaude(buildPrompt(opts.system, opts.messages) + instruction, modelAlias(opts.model));
-    const jsonText = extractJson(raw);
-    let data: unknown;
-    try {
-      data = JSON.parse(jsonText);
-    } catch {
-      throw new LLMError("The claude CLI did not return valid JSON. Try again or use a different model.", 502);
+
+    // The CLI has no schema enforcement, so a reply occasionally arrives wrapped
+    // in prose or truncated. parseJsonLoose recovers most of those; on a true
+    // failure we retry once with a sharper reminder before giving up.
+    const ATTEMPTS = 2;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+      const reminder =
+        attempt === 0
+          ? ""
+          : "\n\nIMPORTANT: your previous reply could not be parsed as JSON. Return ONLY the JSON object — start with { and end with } — with no prose, notes, or code fences.";
+      const raw = await runClaude(base + instruction + reminder, modelAlias(opts.model));
+      try {
+        return { data: parseJsonLoose(raw), raw, usage: ZERO };
+      } catch (e) {
+        lastErr = e;
+      }
     }
-    return { data, raw: jsonText, usage: ZERO };
+    void lastErr;
+    throw new LLMError(
+      "The claude CLI did not return valid JSON after retrying. Try again, shorten the request, or use a different model.",
+      502,
+    );
   }
 }
