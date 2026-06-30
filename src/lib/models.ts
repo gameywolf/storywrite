@@ -45,7 +45,7 @@ export function getProviderConfig(id: string): ProviderConfig {
 export type TargetLengthKey = "SHORT_STORY" | "NOVELLA" | "NOVEL" | "EPIC";
 
 export interface TargetLength {
-  key: TargetLengthKey;
+  key: TargetLengthKey | "CUSTOM";
   label: string;
   /** Total target book length in words. The AI decides how many chapters to use
    *  and how long each should be, based on the story. */
@@ -59,8 +59,27 @@ export const TARGET_LENGTHS: Record<TargetLengthKey, TargetLength> = {
   EPIC: { key: "EPIC", label: "Epic (~150,000 words)", words: 150000 },
 };
 
+// Bounds for a user-entered custom word count.
+export const MIN_CUSTOM_WORDS = 500;
+export const MAX_CUSTOM_WORDS = 500000;
+
+/**
+ * Resolve a stored targetLength into a TargetLength. Accepts either a preset key
+ * (e.g. "NOVEL") or a raw word count (e.g. "42000" from the "Other" option).
+ * Returns null if the value is neither.
+ */
+export function parseTargetLength(value: string): TargetLength | null {
+  const preset = TARGET_LENGTHS[value as TargetLengthKey];
+  if (preset) return preset;
+  const words = Number(value);
+  if (Number.isInteger(words) && words >= MIN_CUSTOM_WORDS && words <= MAX_CUSTOM_WORDS) {
+    return { key: "CUSTOM", label: `Custom (~${words.toLocaleString()} words)`, words };
+  }
+  return null;
+}
+
 export function getTargetLength(key: string): TargetLength {
-  const t = TARGET_LENGTHS[key as TargetLengthKey];
+  const t = parseTargetLength(key);
   if (!t) throw new Error(`Unknown target length: ${key}`);
   return t;
 }

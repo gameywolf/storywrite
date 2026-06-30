@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { generateBlueprint } from "@/lib/blueprint";
 import { LLMError, devBackend, backendProviderName } from "@/lib/llm";
-import { PROVIDERS, TARGET_LENGTHS } from "@/lib/models";
+import { PROVIDERS, TARGET_LENGTHS, parseTargetLength } from "@/lib/models";
 
 export const runtime = "nodejs";
 // Generation can take a while; allow a generous budget.
@@ -11,7 +11,10 @@ export const maxDuration = 300;
 
 const BodySchema = z.object({
   description: z.string().min(10, "Tell me a little more about your story (at least a sentence)."),
-  targetLength: z.enum(["SHORT_STORY", "NOVELLA", "NOVEL", "EPIC"]),
+  // A preset key (e.g. "NOVEL") or a custom word count (e.g. "42000").
+  targetLength: z
+    .string()
+    .refine((v) => parseTargetLength(v) !== null, "Choose a length or enter a valid target word count."),
   provider: z.string(),
   model: z.string(),
   // The writer's answers to the clarifying questions, if they didn't skip them.

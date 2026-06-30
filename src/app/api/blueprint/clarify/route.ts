@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateClarifyingQuestions } from "@/lib/clarify";
 import { LLMError, devBackend, backendProviderName } from "@/lib/llm";
-import { PROVIDERS } from "@/lib/models";
+import { PROVIDERS, parseTargetLength } from "@/lib/models";
 
 export const runtime = "nodejs";
 // Lighter than blueprinting, but still a model call — give it room.
@@ -10,7 +10,10 @@ export const maxDuration = 120;
 
 const BodySchema = z.object({
   description: z.string().min(10, "Tell me a little more about your story (at least a sentence)."),
-  targetLength: z.enum(["SHORT_STORY", "NOVELLA", "NOVEL", "EPIC"]),
+  // A preset key (e.g. "NOVEL") or a custom word count (e.g. "42000").
+  targetLength: z
+    .string()
+    .refine((v) => parseTargetLength(v) !== null, "Choose a length or enter a valid target word count."),
   provider: z.string(),
   model: z.string(),
 });

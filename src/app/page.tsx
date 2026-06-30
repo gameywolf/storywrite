@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { PROVIDERS, DEFAULT_PROVIDER, TARGET_LENGTHS } from "@/lib/models";
+import { PROVIDERS, DEFAULT_PROVIDER, TARGET_LENGTHS, MIN_CUSTOM_WORDS, MAX_CUSTOM_WORDS } from "@/lib/models";
 import ClarifyModal from "@/components/ClarifyModal";
 import type { ClarifyQuestion } from "@/lib/clarify";
 import type { ClarifyAnswer } from "@/lib/prompts/blueprint";
@@ -22,9 +22,15 @@ export default function HomePage() {
   const router = useRouter();
 
   const [description, setDescription] = useState("");
-  const [targetLength, setTargetLength] = useState<keyof typeof TARGET_LENGTHS>("NOVEL");
+  // Either a preset key ("NOVEL", …) or "OTHER" for a typed word count.
+  const [lengthChoice, setLengthChoice] = useState<string>("NOVEL");
+  const [customWords, setCustomWords] = useState("");
   const [provider, setProvider] = useState(DEFAULT_PROVIDER);
   const [model, setModel] = useState(PROVIDERS[DEFAULT_PROVIDER].defaultModel);
+
+  const isCustomLength = lengthChoice === "OTHER";
+  // What gets sent to the server: the preset key, or the typed word count.
+  const targetLength = isCustomLength ? customWords.trim() : lengthChoice;
 
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
@@ -68,6 +74,15 @@ export default function HomePage() {
     if (description.trim().length < 10) {
       setError("Tell me a little more about your story.");
       return false;
+    }
+    if (isCustomLength) {
+      const n = Number(customWords.trim());
+      if (!Number.isInteger(n) || n < MIN_CUSTOM_WORDS || n > MAX_CUSTOM_WORDS) {
+        setError(
+          `Enter a target word count between ${MIN_CUSTOM_WORDS.toLocaleString()} and ${MAX_CUSTOM_WORDS.toLocaleString()}.`,
+        );
+        return false;
+      }
     }
     return true;
   }
@@ -165,8 +180,8 @@ export default function HomePage() {
             </label>
             <select
               id="length"
-              value={targetLength}
-              onChange={(e) => setTargetLength(e.target.value as keyof typeof TARGET_LENGTHS)}
+              value={lengthChoice}
+              onChange={(e) => setLengthChoice(e.target.value)}
               className={`mt-2 ${field}`}
             >
               {Object.values(TARGET_LENGTHS).map((t) => (
@@ -174,7 +189,22 @@ export default function HomePage() {
                   {t.label}
                 </option>
               ))}
+              <option value="OTHER">Other — enter a word count…</option>
             </select>
+            {isCustomLength && (
+              <input
+                type="number"
+                inputMode="numeric"
+                min={MIN_CUSTOM_WORDS}
+                max={MAX_CUSTOM_WORDS}
+                step={500}
+                value={customWords}
+                onChange={(e) => setCustomWords(e.target.value)}
+                placeholder={`Words (${MIN_CUSTOM_WORDS.toLocaleString()}–${MAX_CUSTOM_WORDS.toLocaleString()})`}
+                aria-label="Custom target word count"
+                className={`mt-2 ${field}`}
+              />
+            )}
           </div>
 
           <div>
