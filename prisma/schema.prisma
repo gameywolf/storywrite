@@ -36,6 +36,10 @@ model Story {
   voiceProfileId String?
   voiceProfile   VoiceProfile? @relation(fields: [voiceProfileId], references: [id], onDelete: SetNull)
 
+  // Freeform extra guidance applied to every chapter generation (wins over the
+  // bible per the prose system prompt). Edited on the story's generation panel.
+  instructions String?
+
   // Live generation state
   storyBible     Json?
   runningSummary String?

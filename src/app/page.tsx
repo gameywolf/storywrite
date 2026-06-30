@@ -129,14 +129,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <header className="mb-8">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            <span className="text-ai">AI</span> Author
-          </h1>
-          <Link href="/stories" className="text-sm font-medium text-ink-soft hover:text-ink hover:underline">
-            Your stories →
-          </Link>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Start a new story</h1>
         <p className="mt-2 text-sm text-ink-soft">
           Describe your story. We&apos;ll plan it into a chapter-by-chapter blueprint you can refine.
         </p>
@@ -155,6 +148,7 @@ export default function HomePage() {
           </p>
           <textarea
             id="description"
+            data-tour="describe"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={8}
@@ -296,7 +290,7 @@ export default function HomePage() {
       </form>
 
         <aside className="lg:col-span-1">
-          <div className="sticky top-8 rounded-xl border border-line bg-surface p-5">
+          <div className="sticky top-24 rounded-xl border border-line bg-surface p-5 shadow-card">
             <h2 className="text-sm font-semibold text-ink">What to include</h2>
             <p className="mt-1 text-xs text-ink-soft">
               Anything you leave out, the AI invents. Touch on whatever you have an opinion about:

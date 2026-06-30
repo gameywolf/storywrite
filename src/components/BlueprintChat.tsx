@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Ghost from "./Ghost";
 
 const KEY_STORAGE = "ai-author:apiKey";
 
@@ -104,24 +105,12 @@ export default function BlueprintChat({ storyId }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Adjust the blueprint with AI"
-        className={`fixed bottom-6 right-6 z-30 h-14 w-14 items-center justify-center rounded-full bg-ai text-ai-ink shadow-lg transition hover:bg-ai-hover ${
+        aria-label="Chat with Penghost"
+        className={`group fixed bottom-6 right-6 z-30 h-14 w-14 items-center justify-center rounded-full border border-line bg-white shadow-lg transition hover:bg-ai-soft ${
           open ? "hidden" : "flex"
         }`}
       >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-        </svg>
+        <Ghost size={30} className="text-ai transition-transform group-hover:-translate-y-0.5" />
       </button>
 
       {/* Right sidebar / drawer */}
@@ -133,11 +122,12 @@ export default function BlueprintChat({ storyId }: Props) {
       >
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line p-4">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Adjust with AI</h2>
-            <p className="text-xs text-ink-soft">
-              Tweak chapters, characters, tone, or length.
-            </p>
+          <div className="flex items-center gap-2.5">
+            <Ghost size={32} className="shrink-0 text-ai" />
+            <div>
+              <h2 className="font-serif text-base font-semibold text-ink">Pen<span className="text-ai">ghost</span></h2>
+              <p className="text-xs text-ink-soft">Your ghostwriter — tweak chapters, tone, or length.</p>
+            </div>
           </div>
           <button
             type="button"
@@ -152,10 +142,13 @@ export default function BlueprintChat({ storyId }: Props) {
         {/* Transcript */}
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
           {messages.length === 0 && (
-            <p className="text-sm text-ink-soft">
-              Tell the AI how to change the blueprint — e.g. “Make chapter 3 darker,” or “Cut this
-              down to 8 chapters.”
-            </p>
+            <div className="flex items-start gap-2">
+              <Ghost size={26} floating className="mt-0.5 shrink-0 text-ai" />
+              <p className="text-sm text-ink-soft">
+                Hi, I&apos;m Penghost. Tell me how to change the blueprint — e.g. “Make chapter 3
+                darker,” or “Cut this down to 8 chapters.”
+              </p>
+            </div>
           )}
 
           {messages.map((m, i) => (
@@ -163,11 +156,12 @@ export default function BlueprintChat({ storyId }: Props) {
               {boundaries.includes(i) && (
                 <div className="my-3 flex items-center gap-2 text-[11px] text-ink-soft">
                   <span className="h-px flex-1 bg-line" />
-                  New topic — earlier chat not sent to the AI
+                  New topic — earlier chat not sent to Penghost
                   <span className="h-px flex-1 bg-line" />
                 </div>
               )}
-              <div className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+              <div className={m.role === "user" ? "flex justify-end" : "flex justify-start gap-2"}>
+                {m.role === "assistant" && <Ghost size={22} className="mt-0.5 shrink-0 text-ai" />}
                 <div
                   className={
                     m.role === "user"
@@ -181,7 +175,12 @@ export default function BlueprintChat({ storyId }: Props) {
             </div>
           ))}
 
-          {busy && <p className="text-sm text-ink-soft">Revising the blueprint…</p>}
+          {busy && (
+            <p className="flex items-center gap-2 text-sm text-ink-soft">
+              <Ghost size={20} floating className="shrink-0 text-ai" />
+              Revising the blueprint…
+            </p>
+          )}
 
           {askFeedback && !busy && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-field/50 px-3 py-2 text-sm">
@@ -226,8 +225,8 @@ export default function BlueprintChat({ storyId }: Props) {
           </div>
           <p className="mt-2 text-[11px] text-ink-soft">
             {contextStart < messages.length
-              ? "The AI sees this topic's messages so it can keep context."
-              : "Starting a fresh topic — earlier chat won't be sent to the AI."}
+              ? "Penghost sees this topic's messages so it can keep context."
+              : "Starting a fresh topic — earlier chat won't be sent to Penghost."}
           </p>
           {error && <p className="mt-2 text-sm text-red-800">{error}</p>}
         </div>

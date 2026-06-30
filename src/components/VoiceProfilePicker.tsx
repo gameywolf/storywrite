@@ -96,7 +96,7 @@ export default function VoiceProfilePicker({ storyId, profiles, selectedId, sele
   }
 
   return (
-    <section className="rounded-xl border border-line bg-surface p-5">
+    <div>
       <div className="flex items-center justify-between gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
           Voice
@@ -191,6 +191,6 @@ export default function VoiceProfilePicker({ storyId, profiles, selectedId, sele
       </p>
 
       {error && <p className="mt-3 text-sm text-red-800">{error}</p>}
-    </section>
+    </div>
   );
 }

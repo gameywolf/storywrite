@@ -43,6 +43,7 @@ export interface ProseContext {
   storyBible: unknown; // JSON bible (characters/locations/facts/openThreads)
   voiceAnalysis: VoiceAnalysis | null; // selected voice profile, or null
   voiceExcerpts: string[]; // verbatim excerpts from that profile
+  instructions?: string | null; // freeform extra guidance from the writer
   targetWords: number; // rough word target for this chapter
 }
 
@@ -170,6 +171,7 @@ export function buildProsePrompt(ctx: ProseContext): string {
     .join("\n");
   const bible = ctx.storyBible ? JSON.stringify(ctx.storyBible, null, 2) : "(none yet)";
   const voice = voiceBlock(ctx.voiceAnalysis, ctx.voiceExcerpts);
+  const instructions = ctx.instructions?.trim();
 
   // TODO: write the chapter-writing user prompt.
   return [
@@ -189,6 +191,9 @@ export function buildProsePrompt(ctx: ProseContext): string {
     `Chapter ${ctx.chapter.index + 1}: ${ctx.chapter.title}`,
     ctx.chapter.description ? `Summary: ${ctx.chapter.description}` : "",
     `Outline:\n${ctx.chapter.outline}`,
+    instructions
+      ? `ADDITIONAL INSTRUCTIONS (from the writer — these take priority over the bible where they conflict):\n${instructions}`
+      : "",
     `Target ~${ctx.targetWords} words.`,
     // FINAL INSTRUCTION — paste your closing directions between the quotes
     // (e.g. "Now write the full chapter as prose. Output ONLY the prose — no

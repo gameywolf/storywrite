@@ -46,34 +46,29 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <div className="flex items-center gap-4 text-sm">
-        <Link href="/stories" className="text-ink-soft hover:text-ink hover:underline">
-          ← All stories
-        </Link>
-        <Link href="/voices" className="text-ink-soft hover:text-ink hover:underline">
-          Voices
-        </Link>
-        <Link href="/" className="text-ink-soft hover:text-ink hover:underline">
-          + New story
-        </Link>
-      </div>
+      <Link href="/stories" className="text-sm text-ink-soft hover:text-ink hover:underline">
+        ← All stories
+      </Link>
 
-      <div className="mt-6">
-        <VoiceProfilePicker
+      <div className="mt-6" data-tour="generation">
+        <GenerationPanel
           storyId={story.id}
-          profiles={voiceProfiles}
-          selectedId={story.voiceProfile?.id ?? null}
-          selectedAnalysis={voiceAnalysis}
-        />
-      </div>
-
-      <div className="mt-6">
-        <GenerationPanel storyId={story.id} total={story.chapters.length} written={written} />
+          total={story.chapters.length}
+          written={written}
+          initialInstructions={story.instructions ?? ""}
+        >
+          <VoiceProfilePicker
+            storyId={story.id}
+            profiles={voiceProfiles}
+            selectedId={story.voiceProfile?.id ?? null}
+            selectedAnalysis={voiceAnalysis}
+          />
+        </GenerationPanel>
       </div>
 
       <BlueprintChat storyId={story.id} />
 
-      <div className="mt-6">
+      <div className="mt-6" data-tour="blueprint">
         <BlueprintEditor
         // Remount when the stored blueprint changes (e.g. after an AI chat
         // revision) so the editor picks up the fresh server data.

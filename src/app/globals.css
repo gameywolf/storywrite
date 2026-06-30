@@ -28,9 +28,57 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces); /* display headings / titles */
+  --font-reading: var(--font-source-serif); /* long-form reading */
+
+  /* Soft, warm-tinted elevation — tuned to the cream palette. */
+  --shadow-card: 0 1px 2px rgba(58, 46, 28, 0.04), 0 6px 20px -10px rgba(58, 46, 28, 0.16);
+  --shadow-card-hover: 0 2px 4px rgba(58, 46, 28, 0.06), 0 16px 36px -14px rgba(58, 46, 28, 0.26);
 }
 
 body {
   background-color: var(--color-background);
+  /* Two faint corner glows (orchid + sage) give the flat cream some depth. */
+  background-image:
+    radial-gradient(1100px 560px at 100% -10%, rgba(183, 104, 201, 0.08), transparent 60%),
+    radial-gradient(900px 480px at -10% 110%, rgba(93, 125, 99, 0.08), transparent 55%);
+  background-attachment: fixed;
   color: var(--color-ink);
+}
+
+/* Headings lean on the display serif for a literary feel. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+}
+
+::selection {
+  background-color: var(--color-ai-soft);
+  color: var(--color-ai-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-go);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Penghost mascot drift. */
+@keyframes ghost-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-ghost-float {
+  animation: ghost-float 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-ghost-float {
+    animation: none;
+  }
 }

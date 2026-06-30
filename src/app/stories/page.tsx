@@ -21,27 +21,11 @@ export default async function StoriesPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          <span className="text-ai">AI</span> Author
-        </h1>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/voices" className="text-ink-soft hover:text-ink hover:underline">
-            Voices
-          </Link>
-          <Link
-            href="/"
-            className="rounded-lg bg-go px-4 py-2 text-sm font-semibold text-go-ink shadow-sm transition hover:bg-go-hover"
-          >
-            + New story
-          </Link>
-        </div>
-      </div>
+      <h1 className="mb-6 text-3xl font-semibold tracking-tight">Your stories</h1>
 
-      <h2 className="mb-4 text-lg font-semibold text-ink">Your stories</h2>
-
+      <div data-tour="stories-list">
       {stories.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-8 text-center">
+        <div className="rounded-xl border border-line bg-surface p-8 text-center shadow-card">
           <p className="text-ink-soft">No stories yet.</p>
           <Link href="/" className="mt-3 inline-block text-sm font-medium text-go hover:underline">
             Create your first story →
@@ -57,7 +41,7 @@ export default async function StoriesPage() {
               <li key={s.id}>
                 <Link
                   href={`/story/${s.id}`}
-                  className="block rounded-xl border border-line bg-surface p-5 transition hover:border-go"
+                  className="block rounded-xl border border-line bg-surface p-5 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-go hover:shadow-card-hover"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="text-lg font-semibold text-ink">{s.title || "Untitled"}</h3>
@@ -76,6 +60,7 @@ export default async function StoriesPage() {
           })}
         </ul>
       )}
+      </div>
     </main>
   );
 }

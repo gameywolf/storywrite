@@ -34,7 +34,7 @@ const newKey = () => `c${keySeq++}-${Math.round(Math.random() * 1e6)}`;
 const field =
   "w-full rounded-lg border border-line bg-field p-2.5 text-sm text-ink outline-none transition focus:border-go";
 const label = "block text-xs font-medium text-ink-soft";
-const card = "rounded-xl border border-line bg-surface p-5";
+const card = "rounded-xl border border-line bg-surface p-5 shadow-card";
 
 /** A textarea that grows to fit its content instead of scrolling. */
 function AutoTextarea({
@@ -87,6 +87,18 @@ export default function BlueprintEditor({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Collapsible (dropdown) sections. Story details starts open; chapters start
+  // collapsed so the blueprint reads as a compact, expandable list.
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
+  const toggleChapter = (key: string) =>
+    setOpenChapters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
   // Snapshot for Cancel.
   const snapshot = useRef<{
     title: string;
@@ -130,7 +142,9 @@ export default function BlueprintEditor({
     });
   }
   function addChapter() {
-    setChapters((p) => [...p, { key: newKey(), title: "", description: "", outline: "" }]);
+    const key = newKey();
+    setChapters((p) => [...p, { key, title: "", description: "", outline: "" }]);
+    setOpenChapters((prev) => new Set(prev).add(key)); // expand the new one to fill in
   }
   function removeChapter(idx: number) {
     setChapters((p) => p.filter((_, i) => i !== idx));
@@ -252,8 +266,18 @@ export default function BlueprintEditor({
 
       {/* Story details */}
       <section className={card}>
-        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-soft">Story details</h2>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((o) => !o)}
+          aria-expanded={detailsOpen}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Story details</h2>
+          <Chevron open={detailsOpen} />
+        </button>
 
+        {detailsOpen && (
+        <div className="mt-4">
         {editing ? (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -316,40 +340,65 @@ export default function BlueprintEditor({
             )}
           </>
         )}
+        </div>
+        )}
       </section>
 
       {/* Chapters */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-ink">Chapters</h2>
         <ol className="space-y-4">
-          {chapters.map((ch, i) => (
+          {chapters.map((ch, i) => {
+            const open = openChapters.has(ch.key);
+            return (
             <li key={ch.key} className={card}>
-              {editing ? (
-                <>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-ink-soft">Chapter {i + 1}</span>
-                    <div className="flex items-center gap-3 text-xs text-ink">
-                      <button type="button" onClick={() => moveChapter(i, -1)} disabled={i === 0} className="disabled:opacity-30">↑</button>
-                      <button type="button" onClick={() => moveChapter(i, 1)} disabled={i === chapters.length - 1} className="disabled:opacity-30">↓</button>
-                      <button type="button" onClick={() => removeChapter(i)} className="text-red-800/80 hover:underline">Delete</button>
-                    </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleChapter(ch.key)}
+                  aria-expanded={open}
+                  className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                >
+                  <Chevron open={open} className="mt-1" />
+                  <span className="mt-0.5 text-xs font-semibold text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-ink">{ch.title || "Untitled chapter"}</span>
+                    {!editing && ch.description && (
+                      <span className="mt-0.5 block text-sm italic text-ink-soft">{ch.description}</span>
+                    )}
+                  </span>
+                </button>
+                {editing && (
+                  <div className="flex shrink-0 items-center gap-3 text-xs text-ink">
+                    <button type="button" onClick={() => moveChapter(i, -1)} disabled={i === 0} className="disabled:opacity-30">↑</button>
+                    <button type="button" onClick={() => moveChapter(i, 1)} disabled={i === chapters.length - 1} className="disabled:opacity-30">↓</button>
+                    <button type="button" onClick={() => removeChapter(i)} className="text-red-800/80 hover:underline">Delete</button>
                   </div>
-                  <input className={field} placeholder="Chapter title" value={ch.title} onChange={(e) => setChapter(i, { title: e.target.value })} />
-                  <div className="mt-2"><AutoTextarea value={ch.description} onChange={(v) => setChapter(i, { description: v })} placeholder="One-line description" /></div>
-                  <div className="mt-2"><AutoTextarea value={ch.outline} onChange={(v) => setChapter(i, { outline: v })} placeholder="Detailed outline" /></div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-semibold text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
-                    <h3 className="font-medium text-ink">{ch.title || "Untitled chapter"}</h3>
-                  </div>
-                  {ch.description && <p className="mt-1 text-sm italic text-ink-soft">{ch.description}</p>}
-                  {ch.outline && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">{ch.outline}</p>}
-                </>
+                )}
+              </div>
+
+              {open && (
+                <div className="mt-3">
+                  {editing ? (
+                    <>
+                      <input className={field} placeholder="Chapter title" value={ch.title} onChange={(e) => setChapter(i, { title: e.target.value })} />
+                      <div className="mt-2"><AutoTextarea value={ch.description} onChange={(v) => setChapter(i, { description: v })} placeholder="One-line description" /></div>
+                      <div className="mt-2"><AutoTextarea value={ch.outline} onChange={(v) => setChapter(i, { outline: v })} placeholder="Detailed outline" /></div>
+                    </>
+                  ) : (
+                    <>
+                      {ch.outline ? (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">{ch.outline}</p>
+                      ) : (
+                        <p className="text-sm text-ink-soft">No outline yet.</p>
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </li>
-          ))}
+            );
+          })}
         </ol>
         {editing && (
           <button
@@ -362,6 +411,21 @@ export default function BlueprintEditor({
         )}
       </section>
     </div>
+  );
+}
+
+function Chevron({ open, className = "" }: { open: boolean; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={`h-4 w-4 shrink-0 text-ink-soft transition-transform duration-200 ${open ? "rotate-90" : ""} ${className}`}
+    >
+      <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

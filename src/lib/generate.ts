@@ -146,6 +146,7 @@ export async function generateNextChapter(storyId: string, apiKey: string): Prom
           storyBible: story.storyBible,
           voiceAnalysis,
           voiceExcerpts,
+          instructions: story.instructions,
           targetWords,
         }),
       },

@@ -117,7 +117,7 @@ export default function VoicesManager({ initialProfiles }: { initialProfiles: Pr
     <div>
       {/* Create */}
       {creating ? (
-        <section className="rounded-xl border border-line bg-surface p-5">
+        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
           <h3 className="text-sm font-semibold text-ink">New voice</h3>
           <input
             value={newName}
@@ -171,7 +171,7 @@ export default function VoicesManager({ initialProfiles }: { initialProfiles: Pr
         )}
 
         {initialProfiles.map((p) => (
-          <li key={p.id} className="rounded-xl border border-line bg-surface p-5">
+          <li key={p.id} className="rounded-xl border border-line bg-surface p-5 shadow-card">
             {editingId === p.id ? (
               <div className="space-y-3">
                 <div>
