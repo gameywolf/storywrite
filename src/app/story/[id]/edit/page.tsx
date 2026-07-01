@@ -5,8 +5,8 @@ import { readableChapters } from "@/lib/readerChapters";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Reading is now one chapter per URL. Send /read to the first written chapter.
-export default async function ReadIndex({ params }: { params: Promise<{ id: string }> }) {
+// Editing is one chapter per URL. Send /edit to the first written chapter.
+export default async function EditIndex({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const story = await prisma.story.findUnique({
@@ -24,5 +24,5 @@ export default async function ReadIndex({ params }: { params: Promise<{ id: stri
     );
   }
 
-  redirect(`/story/${id}/read/${list[0].number}`);
+  redirect(`/story/${id}/edit/${list[0].number}`);
 }

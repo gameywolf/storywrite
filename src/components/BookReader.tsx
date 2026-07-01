@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 interface Chapter {
@@ -9,17 +10,59 @@ interface Chapter {
   content: string;
 }
 
-interface Props {
-  storyId: string;
+interface NavChapter {
+  number: number;
   title: string;
-  logline: string | null;
-  chapters: Chapter[];
 }
 
 type Mode = "scroll" | "pages";
 
-export default function BookReader({ storyId, title, logline, chapters }: Props) {
-  const [mode, setMode] = useState<Mode>("scroll");
+interface Props {
+  storyId: string;
+  title: string;
+  logline: string | null;
+  chapter: Chapter;
+  chapters: NavChapter[];
+  prevNumber: number | null;
+  nextNumber: number | null;
+  position: number; // 1-based position among readable chapters
+  total: number;
+  isFirst: boolean;
+  initialMode: Mode;
+  startAtEnd: boolean; // land on the last page (when flipping back into this chapter)
+}
+
+export default function BookReader({
+  storyId,
+  title,
+  logline,
+  chapter,
+  chapters,
+  prevNumber,
+  nextNumber,
+  position,
+  total,
+  isFirst,
+  initialMode,
+  startAtEnd,
+}: Props) {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>(initialMode);
+
+  // Keep the reading mode when moving between chapters so flipping pages is seamless.
+  // `atEnd` asks the target chapter to open on its last page (flipping backwards).
+  const href = (n: number, atEnd = false) => {
+    const params = new URLSearchParams();
+    if (mode === "pages") params.set("mode", "pages");
+    if (atEnd) params.set("start", "last");
+    const q = params.toString();
+    return `/story/${storyId}/read/${n}${q ? `?${q}` : ""}`;
+  };
+  const gotoChapter = (n: number | null, atEnd = false) => {
+    // In pages mode, keep the window scroll position so flipping to the next
+    // chapter doesn't jump the page to the top. Scroll mode scrolls to top as usual.
+    if (n != null) router.push(href(n, atEnd), { scroll: mode !== "pages" });
+  };
 
   const segBtn = (active: boolean) =>
     `rounded-md px-3 py-1.5 font-medium transition ${
@@ -28,12 +71,19 @@ export default function BookReader({ storyId, title, logline, chapters }: Props)
 
   return (
     <div>
-      {/* Top bar: back link + format toggle */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Top bar: back link + edit/export + format toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href={`/story/${storyId}`} className="text-sm text-ink-soft hover:text-ink hover:underline">
           ← Back to blueprint
         </Link>
-        {chapters.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/story/${storyId}/edit/${chapter.number}`}
+            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-sm transition hover:bg-control"
+          >
+            Edit
+          </Link>
+          <ExportMenu storyId={storyId} />
           <div className="inline-flex rounded-lg border border-line bg-surface p-0.5 text-sm shadow-sm">
             <button type="button" onClick={() => setMode("scroll")} className={segBtn(mode === "scroll")}>
               Scroll
@@ -42,18 +92,127 @@ export default function BookReader({ storyId, title, logline, chapters }: Props)
               Pages
             </button>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Chapter navigation */}
+      <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => gotoChapter(prevNumber)}
+          disabled={prevNumber == null}
+          aria-label="Previous chapter"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-control text-ink transition hover:bg-control-hover disabled:opacity-40"
+        >
+          ←
+        </button>
+        <select
+          value={chapter.number}
+          onChange={(e) => gotoChapter(Number(e.target.value))}
+          className="max-w-[18rem] truncate rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-ink shadow-sm outline-none focus:border-go"
+        >
+          {chapters.map((c) => (
+            <option key={c.number} value={c.number}>
+              Chapter {c.number}: {c.title}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => gotoChapter(nextNumber)}
+          disabled={nextNumber == null}
+          aria-label="Next chapter"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-control text-ink transition hover:bg-control-hover disabled:opacity-40"
+        >
+          →
+        </button>
+        <span className="ml-1 tabular-nums text-ink-soft">
+          {position} / {total}
+        </span>
       </div>
 
       <div className="mt-5">
-        {chapters.length === 0 ? (
-          <p className="text-ink-soft">No chapters written yet. Generate some from the blueprint page.</p>
-        ) : mode === "scroll" ? (
-          <ScrollView title={title} logline={logline} chapters={chapters} />
+        {mode === "scroll" ? (
+          <ScrollView
+            title={title}
+            logline={logline}
+            chapter={chapter}
+            isFirst={isFirst}
+            nextNumber={nextNumber}
+            onNext={() => gotoChapter(nextNumber)}
+          />
         ) : (
-          <PagesView title={title} logline={logline} chapters={chapters} />
+          <PagesView
+            title={title}
+            logline={logline}
+            chapter={chapter}
+            isFirst={isFirst}
+            prevNumber={prevNumber}
+            nextNumber={nextNumber}
+            startAtEnd={startAtEnd}
+            onFlip={gotoChapter}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+// ---- Export menu ------------------------------------------------------------
+
+const EXPORTS: { format: string; label: string }[] = [
+  { format: "epub", label: "EPUB e-book" },
+  { format: "md", label: "Markdown (.md)" },
+  { format: "html", label: "HTML" },
+  { format: "txt", label: "Plain text (.txt)" },
+];
+
+function ExportMenu({ storyId }: { storyId: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-sm transition hover:bg-control"
+      >
+        Export
+        <span aria-hidden className={`text-xs transition-transform ${open ? "rotate-180" : ""}`}>
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-card"
+        >
+          {EXPORTS.map((e) => (
+            <a
+              key={e.format}
+              href={`/api/stories/${storyId}/export?format=${e.format}`}
+              download
+              onClick={() => setOpen(false)}
+              className="block rounded-md px-3 py-1.5 text-sm text-ink transition hover:bg-control"
+            >
+              {e.label}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -85,42 +244,81 @@ function ChapterHeading({ number, title }: { number: number; title: string }) {
 
 const proseCls = "whitespace-pre-wrap font-reading text-[1.075rem] leading-[1.85] text-ink/90";
 
-// ---- Continuous scroll ------------------------------------------------------
+// ---- Continuous scroll (one chapter) ----------------------------------------
 
-function ScrollView({ title, logline, chapters }: Omit<Props, "storyId">) {
+function ScrollView({
+  title,
+  logline,
+  chapter,
+  isFirst,
+  nextNumber,
+  onNext,
+}: {
+  title: string;
+  logline: string | null;
+  chapter: Chapter;
+  isFirst: boolean;
+  nextNumber: number | null;
+  onNext: () => void;
+}) {
   return (
     <div className="mx-auto max-w-3xl rounded-2xl border border-line bg-surface px-6 py-12 shadow-card sm:px-14 sm:py-16">
-      <BookTitle title={title} logline={logline} />
-      <div className="space-y-16">
-        {chapters.map((c, i) => (
-          <article key={c.number}>
-            <ChapterHeading number={c.number} title={c.title} />
-            <div className={proseCls}>{c.content}</div>
-            {i < chapters.length - 1 && <div aria-hidden className="mt-16 text-center text-ai/70">❦</div>}
-          </article>
-        ))}
-      </div>
+      {isFirst && <BookTitle title={title} logline={logline} />}
+      <article>
+        <ChapterHeading number={chapter.number} title={chapter.title} />
+        <div className={proseCls}>{chapter.content}</div>
+      </article>
+      {nextNumber != null && (
+        <div className="mt-16 flex flex-col items-center gap-4">
+          <div aria-hidden className="text-center text-ai/70">❦</div>
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-lg border border-line bg-control px-4 py-2 text-sm font-medium text-ink transition hover:bg-control-hover"
+          >
+            Next chapter →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ---- Paginated "book" -------------------------------------------------------
+// ---- Paginated "book" (one chapter, flips into neighbours) ------------------
 
 const MARGIN = 40; // per-side text margin within a page, in px
 const TWO_PAGE_MIN = 1024; // window width (px) at/above which we show a spread
 
-function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
+function PagesView({
+  title,
+  logline,
+  chapter,
+  isFirst,
+  prevNumber,
+  nextNumber,
+  startAtEnd,
+  onFlip,
+}: {
+  title: string;
+  logline: string | null;
+  chapter: Chapter;
+  isFirst: boolean;
+  prevNumber: number | null;
+  nextNumber: number | null;
+  startAtEnd: boolean;
+  onFlip: (n: number | null, atEnd?: boolean) => void;
+}) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const flowRef = useRef<HTMLDivElement>(null);
   const [viewW, setViewW] = useState(0); // viewport width = one spread
   const [perView, setPerView] = useState(1); // pages shown at once (1 or 2)
   const [pageCount, setPageCount] = useState(1); // total pages (columns)
   const [spread, setSpread] = useState(0); // current spread index
+  // When we arrived by flipping backwards, jump to the last page once measured.
+  const appliedStart = useRef(false);
 
   const spreadCount = Math.max(1, Math.ceil(pageCount / perView));
 
-  // perView is decided by the window (not the viewport, which depends on
-  // perView via maxWidth — that would loop). viewW measures the actual frame.
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
@@ -148,27 +346,43 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
       const colSlot = viewW / perView; // width of one page incl. its gutter
       const count = Math.max(1, Math.round(fl.scrollWidth / colSlot));
       setPageCount(count);
-      setSpread((s) => Math.min(s, Math.ceil(count / perView) - 1));
+      const lastSpread = Math.ceil(count / perView) - 1;
+      if (startAtEnd && !appliedStart.current) {
+        appliedStart.current = true;
+        setSpread(lastSpread);
+      } else {
+        setSpread((s) => Math.min(s, lastSpread));
+      }
     });
     return () => cancelAnimationFrame(id);
-  }, [viewW, perView, chapters]);
+  }, [viewW, perView, chapter.content, startAtEnd]);
 
-  const go = (dir: 1 | -1) => setSpread((s) => Math.min(spreadCount - 1, Math.max(0, s + dir)));
+  // Turn a page; past the ends, flip cleanly into the neighbouring chapter.
+  const go = (dir: 1 | -1) => {
+    const target = spread + dir;
+    if (target < 0) {
+      if (prevNumber != null) onFlip(prevNumber, true); // open previous chapter on its last page
+      return;
+    }
+    if (target > spreadCount - 1) {
+      if (nextNumber != null) onFlip(nextNumber);
+      return;
+    }
+    setSpread(target);
+  };
 
-  // Arrow-key paging.
+  // Arrow-key paging (also flips between chapters at the ends).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") setSpread((s) => Math.max(0, s - 1));
-      else if (e.key === "ArrowRight") setSpread((s) => Math.min(spreadCount - 1, s + 1));
+      if (e.key === "ArrowLeft") go(-1);
+      else if (e.key === "ArrowRight") go(1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [spreadCount]);
+    // go() closes over spread/spreadCount/neighbours; re-subscribe when they change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spread, spreadCount, prevNumber, nextNumber]);
 
-  // One page slot = viewW / perView, so a spread is exactly one viewport-width
-  // translate. Each column is that slot minus its two margins; the column-gap
-  // (two facing margins) lands in the spine, so each page reads as its own
-  // column on the one connected sheet.
   const colStyle: React.CSSProperties = viewW
     ? {
         columnWidth: `${viewW / perView - 2 * MARGIN}px`,
@@ -182,6 +396,9 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
   const label =
     lastPage > firstPage ? `Pages ${firstPage}–${lastPage} of ${pageCount}` : `Page ${firstPage} of ${pageCount}`;
 
+  const canPrev = spread > 0 || prevNumber != null;
+  const canNext = spread < spreadCount - 1 || nextNumber != null;
+
   return (
     <div className="flex flex-col items-center">
       <div
@@ -189,10 +406,8 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
         className="relative w-full overflow-hidden"
         style={{ height: "min(74vh, 780px)", maxWidth: perView === 2 ? "64rem" : "44rem" }}
       >
-        {/* One connected sheet (open book) */}
         <div aria-hidden className="absolute inset-0 rounded-2xl border border-line bg-surface shadow-card" />
 
-        {/* Center spine shadow on a spread */}
         {perView === 2 && (
           <div
             aria-hidden
@@ -205,19 +420,16 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
           />
         )}
 
-        {/* Text — page changes are instant; the flip overlay sells the turn */}
         <div
           ref={flowRef}
           className="absolute inset-0"
           style={{ ...colStyle, padding: MARGIN, transform: `translateX(-${spread * viewW}px)` }}
         >
-          <BookTitle title={title} logline={logline} />
-          {chapters.map((c) => (
-            <article key={c.number} className="mb-10" style={{ breakBefore: "column" }}>
-              <ChapterHeading number={c.number} title={c.title} />
-              <div className={proseCls}>{c.content}</div>
-            </article>
-          ))}
+          {isFirst && <BookTitle title={title} logline={logline} />}
+          <article style={{ breakBefore: isFirst ? "column" : "auto" }}>
+            <ChapterHeading number={chapter.number} title={chapter.title} />
+            <div className={proseCls}>{chapter.content}</div>
+          </article>
         </div>
       </div>
 
@@ -226,7 +438,7 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
         <button
           type="button"
           onClick={() => go(-1)}
-          disabled={spread === 0}
+          disabled={!canPrev}
           aria-label="Previous page"
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-control text-ink transition hover:bg-control-hover disabled:opacity-40"
         >
@@ -236,14 +448,16 @@ function PagesView({ title, logline, chapters }: Omit<Props, "storyId">) {
         <button
           type="button"
           onClick={() => go(1)}
-          disabled={spread >= spreadCount - 1}
+          disabled={!canNext}
           aria-label="Next page"
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-control text-ink transition hover:bg-control-hover disabled:opacity-40"
         >
           →
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-ink-soft">Tip: use ← / → arrow keys to turn pages.</p>
+      <p className="mt-2 text-[11px] text-ink-soft">
+        Tip: use ← / → arrow keys to turn pages — past the last page you&apos;ll flip to the next chapter.
+      </p>
     </div>
   );
 }
